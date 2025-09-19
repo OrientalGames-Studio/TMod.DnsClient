@@ -7,10 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TMod.DnsClient", "TMod.DnsC
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{9FA3D6BD-1EC1-3BA5-80CB-CE02773A58D5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TMod.DnsClient.Test", "TMod.DnsClient.Test\TMod.DnsClient.Test.csproj", "{E163C45F-1ECA-4995-85F3-07BA705071AD}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TMod.DnsClient.Test.Console", "TMod.DnsClient.Test.Console\TMod.DnsClient.Test.Console.csproj", "{647E080D-25FE-4180-99DF-487AF656F97E}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,14 +17,6 @@ Global
 		{D7B2648F-1AC8-452F-9C93-70784179F13A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D7B2648F-1AC8-452F-9C93-70784179F13A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D7B2648F-1AC8-452F-9C93-70784179F13A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E163C45F-1ECA-4995-85F3-07BA705071AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E163C45F-1ECA-4995-85F3-07BA705071AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E163C45F-1ECA-4995-85F3-07BA705071AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E163C45F-1ECA-4995-85F3-07BA705071AD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{647E080D-25FE-4180-99DF-487AF656F97E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{647E080D-25FE-4180-99DF-487AF656F97E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{647E080D-25FE-4180-99DF-487AF656F97E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{647E080D-25FE-4180-99DF-487AF656F97E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
