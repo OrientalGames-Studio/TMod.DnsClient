@@ -1,0 +1,26 @@
+name: Mirror Sync
+
+on: [push]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: GitHub 主 -> GitLab 从
+        if: ${{ vars.REPO_ROLE == 'master' }}
+        run: |
+          echo "当前角色: GitHub 主库"
+          git remote add gitlab "${{ vars.GITLAB_REPO }}"
+          git push --mirror gitlab
+
+      - name: GitLab 主 -> GitHub 从
+        if: ${{ vars.REPO_ROLE == 'slave' }}
+        run: |
+          echo "当前角色: GitLab 主库"
+          git remote add gitlab "${{ vars.GITLAB_REPO }}"
+          git fetch gitlab --prune
+          git push origin --mirror
