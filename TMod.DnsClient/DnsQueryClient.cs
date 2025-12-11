@@ -14,8 +14,10 @@ namespace TMod.DnsClient
 {
     public class DnsQueryClient
     {
-        private readonly string _dnsServer;
+        [Obsolete()]
+        private readonly string? _dnsServer;
         private readonly int _timeout;
+        private readonly IEnumerable<string> _dnsServers;
 
         public DnsQueryClient():this("8.8.8.8")
         {
@@ -24,9 +26,21 @@ namespace TMod.DnsClient
 
         public DnsQueryClient(string dnsServer,int timeout = 3000)
         {
-            _dnsServer = dnsServer;
+            //_dnsServer = dnsServer;
             _timeout = timeout;
             ArgumentNullException.ThrowIfNullOrWhiteSpace(dnsServer, nameof(dnsServer));
+            _dnsServers = [dnsServer];
+        }
+
+        public DnsQueryClient(IEnumerable<string> dnsServers,int timeout = 3000)
+        {
+            ArgumentNullException.ThrowIfNull(dnsServers, nameof(dnsServers));
+            if (!dnsServers.Any())
+            {
+                throw new ArgumentException("At least one DNS server must be provided", nameof(dnsServers));
+            }
+            _dnsServers = dnsServers;
+            _timeout = timeout;
         }
 
         public async Task<DnsMessage> QueryAsync(string domain, DnsRecordType recordType,CancellationToken cancellationToken = default)
@@ -38,12 +52,28 @@ namespace TMod.DnsClient
             byte[] query = BuildDnsQuery(domain, recordType);
             using var udp = new System.Net.Sockets.UdpClient();
             udp.Client.ReceiveTimeout = 5000;
+            UdpReceiveResult response = default;
             CancellationTokenSource timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutToken.CancelAfter(5000);
-            await udp.SendAsync(new ReadOnlyMemory<byte>(query), _dnsServer, 53, timeoutToken.Token);
-            timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutToken.CancelAfter(5000);
-            var response = await udp.ReceiveAsync(timeoutToken.Token);
+            foreach ( var dnsServer in _dnsServers ?? [] )
+            {
+                try
+                {
+                    timeoutToken.CancelAfter(5000);
+                    await udp.SendAsync(new ReadOnlyMemory<byte>(query), dnsServer, 53, timeoutToken.Token);
+                    timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    timeoutToken.CancelAfter(5000);
+                    response = await udp.ReceiveAsync(timeoutToken.Token);
+                    break;
+                }
+                catch ( Exception )
+                {
+                    continue;
+                }
+            }
+            if(response == default || response.Buffer.Length == 0)
+            {
+                throw new Exception("All Dns servers query failed");
+            }
             // 在解析前先检查 header 的 flags / counts，判断是否被截断
             byte[] responseBuffer = response.Buffer;
             ushort flags = BinaryPrimitives.ReadUInt16BigEndian(responseBuffer.AsSpan(2, 2));
@@ -101,28 +131,6 @@ namespace TMod.DnsClient
         {
             Random random = Random.Shared;
             ushort id = (ushort)random.Next(0, ushort.MaxValue);
-
-            //using MemoryStream ms = new MemoryStream();
-            //BinaryWriter writer = new BinaryWriter(ms);
-
-            //// Header
-            //writer.Write((ushort)System.Net.IPAddress.HostToNetworkOrder((short)id)); // ID
-            //writer.Write((ushort)0x0100); // Flags: standard query
-            //writer.Write((ushort)System.Net.IPAddress.HostToNetworkOrder((short)1)); // QDCOUNT
-            //writer.Write((ushort)0); // ANCOUNT
-            //writer.Write((ushort)0); // NSCOUNT
-            //writer.Write((ushort)0); // ARCOUNT
-
-            //// Question
-            //foreach ( var part in domain.Split('.') )
-            //{
-            //    writer.Write((byte)part.Length);
-            //    writer.Write(Encoding.ASCII.GetBytes(part));
-            //}
-            //writer.Write((byte)0); // End of name
-            //writer.Write((ushort)System.Net.IPAddress.HostToNetworkOrder((short)recordType)); // QTYPE
-            //writer.Write((ushort)System.Net.IPAddress.HostToNetworkOrder((short)1)); // QCLASS: IN
-            //return ms.ToArray();
 
             // header: 12 bytes
             var header = new byte[12];
