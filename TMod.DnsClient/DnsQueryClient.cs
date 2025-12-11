@@ -53,6 +53,7 @@ namespace TMod.DnsClient
             UdpReceiveResult response = default;
             CancellationTokenSource timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             string? currentUseDnsServer = null;
+            bool isFailure = false;
             foreach ( var dnsServer in _dnsServers ?? [] )
             {
                 try
@@ -70,14 +71,22 @@ namespace TMod.DnsClient
                     continue;
                 }
             }
-            if((response == default || response.Buffer.Length == 0) && throwIfFailure)
+            if((response == default || response.Buffer.Length == 0))
             {
-                throw new Exception("All Dns servers query failed");
+                isFailure = true;
+                if ( throwIfFailure )
+                {
+                    throw new Exception("All Dns servers query failed");
+                }
             }
             // 在解析前先检查 header 的 flags / counts，判断是否被截断
             byte[] responseBuffer = response.Buffer;
-            ushort flags = BinaryPrimitives.ReadUInt16BigEndian(responseBuffer.AsSpan(2, 2));
             const ushort TC_MASK = 0x0200;
+            ushort flags = TC_MASK;
+            if(!isFailure && responseBuffer.Length >= 4 )
+            {
+                flags = BinaryPrimitives.ReadUInt16BigEndian(responseBuffer.AsSpan(2, 2));
+            }
             if ( ( flags & TC_MASK ) != 0 )
             {
                 // UDP 数据被截断，改用 TCP 重试
