@@ -14,8 +14,6 @@ namespace TMod.DnsClient
 {
     public class DnsQueryClient
     {
-        [Obsolete()]
-        private readonly string? _dnsServer;
         private readonly int _timeout;
         private readonly IEnumerable<string> _dnsServers;
 
@@ -51,18 +49,20 @@ namespace TMod.DnsClient
             }
             byte[] query = BuildDnsQuery(domain, recordType);
             using var udp = new System.Net.Sockets.UdpClient();
-            udp.Client.ReceiveTimeout = 5000;
+            udp.Client.ReceiveTimeout = _timeout;
             UdpReceiveResult response = default;
             CancellationTokenSource timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            string? currentUseDnsServer = null;
             foreach ( var dnsServer in _dnsServers ?? [] )
             {
                 try
                 {
-                    timeoutToken.CancelAfter(5000);
+                    timeoutToken.CancelAfter(_timeout);
                     await udp.SendAsync(new ReadOnlyMemory<byte>(query), dnsServer, 53, timeoutToken.Token);
                     timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    timeoutToken.CancelAfter(5000);
+                    timeoutToken.CancelAfter(_timeout);
                     response = await udp.ReceiveAsync(timeoutToken.Token);
+                    currentUseDnsServer = dnsServer;
                     break;
                 }
                 catch ( Exception )
@@ -82,16 +82,16 @@ namespace TMod.DnsClient
             {
                 // UDP 数据被截断，改用 TCP 重试
                 timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                timeoutToken.CancelAfter(5000);
-                responseBuffer = await QueryTcpAsync(query, timeoutToken.Token);
+                timeoutToken.CancelAfter(_timeout);
+                responseBuffer = await QueryTcpAsync(currentUseDnsServer,query, timeoutToken.Token);
             }
             return ParseDnsResponse(responseBuffer);
         }
 
-        private async Task<byte[]> QueryTcpAsync(byte[] query, CancellationToken cancellationToken = default)
+        private async Task<byte[]> QueryTcpAsync(string dnsServer,byte[] query, CancellationToken cancellationToken = default)
         {
             using var tcp = new TcpClient();
-            await tcp.ConnectAsync(_dnsServer, 53);
+            await tcp.ConnectAsync(dnsServer, 53);
             using var ns = tcp.GetStream();
             // 发送长度前缀 + query
             var lenPrefix = new byte[2];
