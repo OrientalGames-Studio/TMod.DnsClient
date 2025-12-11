@@ -41,7 +41,7 @@ namespace TMod.DnsClient
             _timeout = timeout;
         }
 
-        public async Task<DnsMessage> QueryAsync(string domain, DnsRecordType recordType,CancellationToken cancellationToken = default)
+        public async Task<DnsMessage> QueryAsync(string domain, DnsRecordType recordType,bool throwIfFailure = false,CancellationToken cancellationToken = default)
         {
             if(recordType == DnsRecordType.ANY)
             {
@@ -70,7 +70,7 @@ namespace TMod.DnsClient
                     continue;
                 }
             }
-            if(response == default || response.Buffer.Length == 0)
+            if((response == default || response.Buffer.Length == 0) && throwIfFailure)
             {
                 throw new Exception("All Dns servers query failed");
             }
@@ -88,8 +88,12 @@ namespace TMod.DnsClient
             return ParseDnsResponse(responseBuffer);
         }
 
-        private async Task<byte[]> QueryTcpAsync(string dnsServer,byte[] query, CancellationToken cancellationToken = default)
+        private async Task<byte[]> QueryTcpAsync(string? dnsServer,byte[] query, CancellationToken cancellationToken = default)
         {
+            if ( string.IsNullOrWhiteSpace(dnsServer) )
+            {
+                return [];
+            }
             using var tcp = new TcpClient();
             await tcp.ConnectAsync(dnsServer, 53);
             using var ns = tcp.GetStream();
@@ -118,12 +122,12 @@ namespace TMod.DnsClient
             }
         }
 
-        public async IAsyncEnumerable<DnsMessage> QueryAllAsync(string domain,[EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<DnsMessage> QueryAllAsync(string domain,bool throwIfFailure = false,[EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var recordTypes = Enum.GetValues<DnsRecordType>().Where(t => t != DnsRecordType.ANY);
             foreach ( var item in recordTypes )
             {
-                yield return await QueryAsync(domain, item, cancellationToken);
+                yield return await QueryAsync(domain, item, throwIfFailure,cancellationToken);
             }
         }
 
