@@ -94,7 +94,18 @@ namespace TMod.DnsClient
                 timeoutToken.CancelAfter(_timeout);
                 responseBuffer = await QueryTcpAsync(currentUseDnsServer,query, timeoutToken.Token);
             }
-            return ParseDnsResponse(responseBuffer);
+            try
+            {
+                return ParseDnsResponse(responseBuffer);
+            }
+            catch(Exception ex)
+            {
+                if ( throwIfFailure )
+                {
+                    throw new Exception("Parse Dns response fail.",ex);
+                }
+                return new DnsMessage();
+            }
         }
 
         private async Task<byte[]> QueryTcpAsync(string? dnsServer,byte[] query, CancellationToken cancellationToken = default)
